@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# 어느 명령어로도 코드가 실패하면 전체 스크립트가 실패된다
+set -o errexit
+
+# pipe 명령 중 하나가 실패하면 실패로 종료한다
+set -o pipefail
+
+# 변수가 설정되지 않은 경우 종료한다
+set -o nounset
+
+
+postgres_ready() {
+python << END
+import sys
+
+import psycopg2
+import urllib.parse as urlparse
+import os
+
+url = urlparse.urlparse(os.environ['DATABASE_URL'])
+dbname = url.path[1:]
+user = url.username
+password = url.password
+host = url.hostname
+port = url.port
+
+try:
+    psycopg2.connect(
+        dbname=dbname,
+        user=user,
+        password=password,
+        host=host,
+        port=port,
+    )
+except psycopg2.OperationalError:
+    sys.exit(-1)
+
+sys.exit(0)
+END
+}
+
+until postgres_ready; do
+    >&2 echo 'Waiting for PostgreSQL to becom available...'
+    sleep 1
+done
+>&2 echo 'PostgreSQL is available'
+
+exec "$@"
