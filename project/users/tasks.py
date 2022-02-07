@@ -42,3 +42,6 @@ def task_postrun_handler(task_id, **kwargs):
     from project.ws.views import update_celery_task_status
     # celery 는 asyncio를 지원하지 않기 때문에 sync로 사용한다
     async_to_sync(update_celery_task_status)(task_id)
+
+    from project.ws.views import update_celery_task_status_socketio
+    update_celery_task_status_socketio(task_id)
