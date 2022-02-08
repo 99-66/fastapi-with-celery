@@ -2,6 +2,15 @@ import os
 import pathlib
 from functools import lru_cache
 
+from kombu import Queue
+
+
+def route_task(name, args, kwargs, options, task=None, **kw):
+    if ":" in name:
+        queue, _ = name.split(":")
+        return {"queue": queue}
+    return {"queue": "default"}
+
 
 class BaseConfig:
     BASE_DIR: pathlib.Path = pathlib.Path(__file__).parent.parent
@@ -16,11 +25,25 @@ class BaseConfig:
     beat_schedule: dict = {
         "task-schedule-work": {
             "task": "task_schedule_work",
-            "schedule": 50.0    # 50 sec
+            "schedule": 5.0    # 5 sec
         }
     }
 
-    WS_MESSAGE_QUEUE:str = os.environ.get("WS_MESSAGE_QUEUE", "redis://127.0.0.1:6379/0")
+    task_default_queue: str = "default"
+    task_create_missing_queues: bool = False
+    task_queues: list = (
+        Queue("default"),
+        Queue("high_priority"),
+        Queue("low_priority"),
+    )
+    # task_routes = {
+    #     "project.users.tasks.*": {
+    #         "queue": "high_priority",
+    #     }
+    # }
+    task_routes = (route_task, )
+
+    WS_MESSAGE_QUEUE: str = os.environ.get("WS_MESSAGE_QUEUE", "redis://127.0.0.1:6379/0")
 
 
 class DevelopmentConfig(BaseConfig):
